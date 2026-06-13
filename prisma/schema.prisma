@@ -1,0 +1,85 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  AGENT
+}
+
+enum ChatStatus {
+  UNASSIGNED
+  ACTIVE
+  RESOLVED
+}
+
+enum SenderType {
+  AGENT
+  CUSTOMER
+  SYSTEM
+}
+
+model User {
+  id          String    @id @default(uuid())
+  name        String
+  email       String    @unique
+  role        Role      @default(AGENT)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  assignments AgentAssignment[]
+  messages    Message[]
+}
+
+model Contact {
+  id          String     @id @default(uuid())
+  phoneNumber String     @unique
+  name        String?
+  avatarUrl   String?
+  status      ChatStatus @default(UNASSIGNED)
+  lastMessage String?
+  lastMessageAt DateTime?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  // Relations
+  assignments AgentAssignment[]
+  messages    Message[]
+}
+
+model Message {
+  id         String     @id @default(uuid())
+  content    String
+  senderType SenderType
+  timestamp  DateTime   @default(now())
+
+  // Relations
+  contactId  String
+  contact    Contact    @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  // If sent by agent, we can optionally track which agent sent it
+  userId     String?
+  user       User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([contactId])
+}
+
+model AgentAssignment {
+  id         String   @id @default(uuid())
+  assignedAt DateTime @default(now())
+
+  // Relations
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  contactId  String
+  contact    Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@unique([contactId]) // Assuming a contact is assigned to one agent at a time in this MVP
+}

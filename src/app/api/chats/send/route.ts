@@ -1,0 +1,49 @@
+import { NextRequest, NextResponse } from 'next/server';
+import prisma from '@/lib/prisma';
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { contactId, agentId, text } = body;
+
+    if (!contactId || !text) {
+      return NextResponse.json({ error: 'Missing contactId or text' }, { status: 400 });
+    }
+
+    // Save the message
+    const message = await prisma.message.create({
+      data: {
+        contactId,
+        userId: agentId || null,
+        content: text,
+        senderType: 'AGENT',
+      }
+    });
+
+    // Update the contact's last message
+    await prisma.contact.update({
+      where: { id: contactId },
+      data: {
+        lastMessage: text,
+        lastMessageAt: new Date(),
+        status: 'ACTIVE' // Actively communicating
+      }
+    });
+
+    // NOTE: In a real application, you would trigger the WhatsApp Business API webhook here
+    // e.g. await sendWhatsAppMessage(contact.phoneNumber, text)
+
+    return NextResponse.json({ 
+      success: true, 
+      message: {
+        id: message.id,
+        text: message.content,
+        senderType: message.senderType,
+        timestamp: new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: 'numeric', hour12: true }).format(message.timestamp)
+      }
+    });
+  } catch (error) {
+    console.error('Error sending message:', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
+}
