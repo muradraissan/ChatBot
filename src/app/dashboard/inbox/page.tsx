@@ -1,16 +1,14 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import { useSession } from "next-auth/react";
 import { ChatList, ChatMockData } from "@/components/inbox/ChatList";
 import { ChatWindow, MessageMock } from "@/components/inbox/ChatWindow";
 import { CustomerProfile } from "@/components/inbox/CustomerProfile";
 import { io, Socket } from "socket.io-client";
 
-// Hardcoded for MVP
-const CURRENT_AGENT_ID = "1"; // Assuming Ali's ID, or just any Agent ID to attribute sent messages
-const CURRENT_AGENT_NAME = "Ali Hassan";
-
 export default function InboxPage() {
+  const { data: session, status } = useSession();
   const [chats, setChats] = useState<ChatMockData[]>([]);
   const [selectedChatId, setSelectedChatId] = useState<string | undefined>(undefined);
   const [messages, setMessages] = useState<MessageMock[]>([]);
@@ -103,9 +101,7 @@ export default function InboxPage() {
         body: JSON.stringify({ 
           contactId: selectedChatId, 
           text, 
-          // Note: In reality, fetch actual current user ID from Auth context
-          // Since our seeded Agent Ali might have a dynamic UUID, we let the API handle null agentId gracefully or we fetch the user session.
-          // For now, let's omit agentId and let it default to null in the DB, or hardcode it.
+          agentId: session?.user?.id || null,
         })
       });
 
@@ -124,8 +120,8 @@ export default function InboxPage() {
   };
 
   const handleTypingStart = () => {
-    if (socketRef.current && selectedChatId) {
-      socketRef.current.emit("typing", { chatId: selectedChatId, agentName: CURRENT_AGENT_NAME });
+    if (socketRef.current && selectedChatId && session?.user?.name) {
+      socketRef.current.emit("typing", { chatId: selectedChatId });
     }
   };
 
@@ -140,6 +136,14 @@ export default function InboxPage() {
   };
 
   const activeChat = chats.find(c => c.id === selectedChatId) || null;
+
+  if (status === "loading") {
+    return <div className="flex h-screen items-center justify-center">Loading...</div>;
+  }
+
+  if (status === "unauthenticated") {
+    return null;
+  }
 
   return (
     <div className="flex h-screen w-full bg-slate-50 overflow-hidden font-sans">
