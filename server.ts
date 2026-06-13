@@ -2,6 +2,8 @@ import express from 'express';
 import { createServer } from 'http';
 import { Server as SocketIOServer } from 'socket.io';
 import next from 'next';
+import { parse } from 'cookie';
+import prisma from './src/lib/prisma';
 
 const dev = process.env.NODE_ENV !== 'production';
 const app = next({ dev });
@@ -20,10 +22,6 @@ app.prepare().then(() => {
       methods: ["GET", "POST"]
     }
   });
-
-  const { parse } = require('cookie');
-  const { PrismaClient } = require('@prisma/client');
-  const prisma = new PrismaClient();
 
   io.use(async (socket, next) => {
     try {

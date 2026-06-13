@@ -15,17 +15,13 @@ export default withAuth(
   {
     callbacks: {
       authorized: ({ req, token }) => {
-        // We always return true here so the middleware function above executes
-        // and we can manually return 401 JSON for APIs, while allowing standard
-        // pages to proceed (and then we handle dashboard redirects).
-        // Wait, if we return true, then for /dashboard unauthenticated users
-        // it won't redirect to /login automatically!
-        // So instead:
+        // Return true for APIs to let the middleware function manually return 401 JSON.
+        // For pages, return whether a token exists so withAuth can handle standard redirects to /login.
         const isApi = req.nextUrl.pathname.startsWith("/api/chats");
         if (isApi) {
-          return true; // Let the middleware function return 401
+          return true;
         }
-        return !!token; // For pages, return false if no token to trigger redirect
+        return !!token;
       },
     },
     pages: {
