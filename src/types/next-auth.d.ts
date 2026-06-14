@@ -12,3 +12,13 @@ declare module "next-auth" {
     user: User;
   }
 }
+
+import "next-auth/jwt";
+
+declare module "next-auth/jwt" {
+  interface JWT {
+    id: string;
+    role: Role;
+    workspaceId: string;
+  }
+}
