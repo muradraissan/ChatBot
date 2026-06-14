@@ -15,6 +15,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing contactId or text' }, { status: 400 });
     }
 
+    const contact = await prisma.contact.findFirst({
+      where: {
+        id: contactId,
+        workspaceId: session.user.workspaceId
+      }
+    });
+
+    if (!contact) {
+      return NextResponse.json({ error: 'Contact not found' }, { status: 404 });
+    }
+
     // Save the message
     const message = await prisma.message.create({
       data: {
@@ -22,6 +33,7 @@ export async function POST(request: NextRequest) {
         userId: agentId || null,
         content: text,
         senderType: 'AGENT',
+        workspaceId: session.user.workspaceId,
       }
     });
 

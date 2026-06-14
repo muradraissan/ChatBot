@@ -11,6 +11,9 @@ export async function GET() {
   }
   try {
     const contacts = await prisma.contact.findMany({
+      where: {
+        workspaceId: session.user.workspaceId,
+      },
       orderBy: {
         lastMessageAt: 'desc',
       },

@@ -45,6 +45,7 @@ app.prepare().then(() => {
         id: session.user.id,
         name: session.user.name,
         role: session.user.role,
+        workspaceId: session.user.workspaceId,
       };
       next();
     } catch (error) {
@@ -57,9 +58,24 @@ app.prepare().then(() => {
     console.log('A client connected:', socket.id);
 
     // Join a specific chat room
-    socket.on('join_chat', (chatId) => {
-      socket.join(`chat_${chatId}`);
-      console.log(`Socket ${socket.id} joined chat_${chatId}`);
+    socket.on('join_chat', async (chatId) => {
+      try {
+        const contact = await prisma.contact.findFirst({
+          where: {
+            id: chatId,
+            workspaceId: socket.data.user.workspaceId,
+          }
+        });
+        
+        if (contact) {
+          socket.join(`chat_${chatId}`);
+          console.log(`Socket ${socket.id} joined chat_${chatId}`);
+        } else {
+          console.log(`Socket ${socket.id} rejected from joining chat_${chatId}`);
+        }
+      } catch (error) {
+        console.error('Error joining chat:', error);
+      }
     });
 
     // Handle typing indicators (collision prevention)

@@ -24,6 +24,19 @@ enum SenderType {
   SYSTEM
 }
 
+model Workspace {
+  id        String   @id @default(uuid())
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users       User[]
+  contacts    Contact[]
+  messages    Message[]
+  assignments AgentAssignment[]
+}
+
 model User {
   id            String    @id @default(uuid())
   name          String
@@ -32,14 +45,18 @@ model User {
   image         String?
   passwordHash  String?
   role          Role      @default(AGENT)
+  workspaceId   String
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
   // Relations
+  workspace     Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   assignments   AgentAssignment[]
   messages      Message[]
   accounts      Account[]
   sessions      Session[]
+
+  @@index([workspaceId])
 }
 
 model Account {
@@ -79,18 +96,23 @@ model VerificationToken {
 
 model Contact {
   id          String     @id @default(uuid())
-  phoneNumber String     @unique
+  phoneNumber String
   name        String?
   avatarUrl   String?
   status      ChatStatus @default(UNASSIGNED)
   lastMessage String?
   lastMessageAt DateTime?
+  workspaceId String
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
 
   // Relations
+  workspace   Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   assignments AgentAssignment[]
   messages    Message[]
+
+  @@unique([phoneNumber, workspaceId])
+  @@index([workspaceId])
 }
 
 model Message {
@@ -98,8 +120,10 @@ model Message {
   content    String
   senderType SenderType
   timestamp  DateTime   @default(now())
+  workspaceId String
 
   // Relations
+  workspace  Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   contactId  String
   contact    Contact    @relation(fields: [contactId], references: [id], onDelete: Cascade)
 
@@ -108,13 +132,16 @@ model Message {
   user       User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([contactId])
+  @@index([workspaceId])
 }
 
 model AgentAssignment {
   id         String   @id @default(uuid())
   assignedAt DateTime @default(now())
+  workspaceId String
 
   // Relations
+  workspace  Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   userId     String
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   
@@ -122,4 +149,5 @@ model AgentAssignment {
   contact    Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
 
   @@unique([contactId]) // Assuming a contact is assigned to one agent at a time in this MVP
+  @@index([workspaceId])
 }
