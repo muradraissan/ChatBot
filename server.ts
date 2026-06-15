@@ -2,6 +2,8 @@ import express from 'express';
 import { createServer } from 'http';
 import { Server as SocketIOServer } from 'socket.io';
 import next from 'next';
+import { getToken } from "next-auth/jwt";
+
 import { parse } from 'cookie';
 import prisma from './src/lib/prisma';
 
@@ -23,33 +25,23 @@ app.prepare().then(() => {
     }
   });
 
+
   io.use(async (socket, next) => {
     try {
-      const cookies = parse(socket.request.headers.cookie || '');
-      const sessionToken = cookies['next-auth.session-token'] || cookies['__Secure-next-auth.session-token'];
-
-      if (!sessionToken) {
-        return next(new Error('Authentication error'));
-      }
-
-      const session = await prisma.session.findUnique({
-        where: { sessionToken },
-        include: { user: true }
+      const token = await getToken({
+        req: socket.request as any,
+        secret: process.env.NEXTAUTH_SECRET,
       });
-
-      if (!session || session.expires < new Date()) {
-        return next(new Error('Authentication error'));
-      }
-
+      if (!token) return next(new Error("Authentication error"));
       socket.data.user = {
-        id: session.user.id,
-        name: session.user.name,
-        role: session.user.role,
-        workspaceId: session.user.workspaceId,
+        id: token.id,
+        name: token.name,
+        role: token.role,
+        workspaceId: token.workspaceId,
       };
       next();
-    } catch (error) {
-      next(new Error('Authentication error'));
+    } catch {
+      next(new Error("Authentication error"));
     }
   });
 
