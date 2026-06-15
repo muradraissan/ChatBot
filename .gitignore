@@ -48,3 +48,6 @@ next-env.d.ts
 
 # ad-hoc scripts
 test-*.js
+playwright-report/
+test-results/
+verify-*.js

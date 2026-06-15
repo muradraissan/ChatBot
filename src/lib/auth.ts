@@ -3,11 +3,12 @@ import { NextAuthOptions, getServerSession } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import prisma from "@/lib/prisma";
 import bcrypt from "bcryptjs";
+import { Role } from "@prisma/client";
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
   session: {
-    strategy: "database",
+    strategy: "jwt",
   },
   providers: [
     CredentialsProvider({
@@ -45,11 +46,19 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
-    async session({ session, user }) {
-      if (session.user && user) {
-        session.user.id = user.id;
-        session.user.role = user.role;
-        session.user.workspaceId = user.workspaceId;
+    async jwt({ token, user }) {
+      if (user) {
+        token.id = user.id;
+        token.role = user.role;
+        token.workspaceId = user.workspaceId;
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      if (session.user) {
+        session.user.id = token.id as string;
+        session.user.role = token.role as Role;
+        session.user.workspaceId = token.workspaceId as string;
       }
       return session;
     },
@@ -58,22 +67,4 @@ export const authOptions: NextAuthOptions = {
   pages: {
     signIn: "/login",
   },
-};
-
-import { cookies } from "next/headers";
-
-export const getAuthSession = async () => {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("next-auth.session-token")?.value || cookieStore.get("__Secure-next-auth.session-token")?.value;
-  
-  if (!token) return null;
-  
-  const session = await prisma.session.findUnique({
-    where: { sessionToken: token },
-    include: { user: true }
-  });
-  
-  if (!session || session.expires < new Date()) return null;
-  
-  return { user: session.user };
 };
