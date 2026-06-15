@@ -20,9 +20,21 @@ export async function GET(
       return NextResponse.json({ error: 'Contact ID is required' }, { status: 400 });
     }
 
+    const contact = await prisma.contact.findFirst({
+      where: {
+        id: contactId,
+        workspaceId: session.user.workspaceId,
+      }
+    });
+
+    if (!contact) {
+      return NextResponse.json({ error: 'Not Found' }, { status: 404 });
+    }
+
     const messages = await prisma.message.findMany({
       where: {
         contactId,
+        workspaceId: session.user.workspaceId,
       },
       orderBy: {
         timestamp: 'asc', // Chronological order

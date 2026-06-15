@@ -16,9 +16,25 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if the agent exists
-    const agent = await prisma.user.findUnique({ where: { id: agentId } });
+    const agent = await prisma.user.findFirst({ 
+      where: { 
+        id: agentId,
+        workspaceId: session.user.workspaceId
+      } 
+    });
     if (!agent) {
       return NextResponse.json({ error: 'Agent not found' }, { status: 404 });
+    }
+
+    const contact = await prisma.contact.findFirst({
+      where: {
+        id: contactId,
+        workspaceId: session.user.workspaceId
+      }
+    });
+
+    if (!contact) {
+      return NextResponse.json({ error: 'Contact not found' }, { status: 404 });
     }
 
     // Upsert the assignment (ensure only one assignment exists per contact)
@@ -33,6 +49,7 @@ export async function POST(request: NextRequest) {
       create: {
         contactId,
         userId: agentId,
+        workspaceId: session.user.workspaceId,
       }
     });
 

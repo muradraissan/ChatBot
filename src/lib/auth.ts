@@ -39,6 +39,7 @@ export const authOptions: NextAuthOptions = {
           name: user.name,
           email: user.email,
           role: user.role,
+          workspaceId: user.workspaceId,
         };
       },
     }),
@@ -48,6 +49,7 @@ export const authOptions: NextAuthOptions = {
       if (session.user && user) {
         session.user.id = user.id;
         session.user.role = user.role;
+        session.user.workspaceId = user.workspaceId;
       }
       return session;
     },
@@ -58,4 +60,20 @@ export const authOptions: NextAuthOptions = {
   },
 };
 
-export const getAuthSession = () => getServerSession(authOptions);
+import { cookies } from "next/headers";
+
+export const getAuthSession = async () => {
+  const cookieStore = await cookies();
+  const token = cookieStore.get("next-auth.session-token")?.value || cookieStore.get("__Secure-next-auth.session-token")?.value;
+  
+  if (!token) return null;
+  
+  const session = await prisma.session.findUnique({
+    where: { sessionToken: token },
+    include: { user: true }
+  });
+  
+  if (!session || session.expires < new Date()) return null;
+  
+  return { user: session.user };
+};
