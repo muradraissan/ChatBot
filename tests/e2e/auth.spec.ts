@@ -48,3 +48,41 @@ test.describe('Authentication', () => {
   });
 
 });
+
+test.describe('Message attribution', () => {
+  test('send route uses session identity, ignores body agentId', async ({ page, request }) => {
+    const { PrismaClient } = require('@prisma/client');
+    const prisma = new PrismaClient();
+
+    const ali = await prisma.user.findUnique({ where: { email: 'ali@iraqrasael.test' } });
+    const sara = await prisma.user.findUnique({ where: { email: 'sara@iraqrasael.test' } });
+    const acmeContact = await prisma.contact.findFirst({ where: { workspaceId: ali.workspaceId } });
+
+    await page.goto('/login');
+    await page.fill('input[type="email"]', 'ali@iraqrasael.test');
+    await page.fill('input[type="password"]', 'dev-password-123');
+    await page.click('button[type="submit"]');
+    await page.waitForURL('**/dashboard/inbox');
+
+    const response = await page.request.post('/api/chats/send', {
+      data: {
+        contactId: acmeContact.id,
+        text: 'attribution test',
+        agentId: sara.id
+      }
+    });
+
+    expect(response.status()).toBe(200);
+
+    const message = await prisma.message.findFirst({
+      where: { content: 'attribution test', contactId: acmeContact.id },
+      orderBy: { timestamp: 'desc' }
+    });
+
+    expect(message.userId).toBe(ali.id);
+    expect(message.userId).not.toBe(sara.id);
+    expect(message.userId).not.toBeNull();
+    
+    await prisma.$disconnect();
+  });
+});
