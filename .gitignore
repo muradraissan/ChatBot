@@ -45,3 +45,6 @@ pgdata/
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# ad-hoc scripts
+test-*.js

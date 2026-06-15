@@ -2,6 +2,8 @@ import express from 'express';
 import { createServer } from 'http';
 import { Server as SocketIOServer } from 'socket.io';
 import next from 'next';
+import { parse } from 'cookie';
+import prisma from './src/lib/prisma';
 
 const dev = process.env.NODE_ENV !== 'production';
 const app = next({ dev });
@@ -21,6 +23,35 @@ app.prepare().then(() => {
     }
   });
 
+  io.use(async (socket, next) => {
+    try {
+      const cookies = parse(socket.request.headers.cookie || '');
+      const sessionToken = cookies['next-auth.session-token'] || cookies['__Secure-next-auth.session-token'];
+
+      if (!sessionToken) {
+        return next(new Error('Authentication error'));
+      }
+
+      const session = await prisma.session.findUnique({
+        where: { sessionToken },
+        include: { user: true }
+      });
+
+      if (!session || session.expires < new Date()) {
+        return next(new Error('Authentication error'));
+      }
+
+      socket.data.user = {
+        id: session.user.id,
+        name: session.user.name,
+        role: session.user.role,
+      };
+      next();
+    } catch (error) {
+      next(new Error('Authentication error'));
+    }
+  });
+
   // Socket.io connection handler
   io.on('connection', (socket) => {
     console.log('A client connected:', socket.id);
@@ -32,8 +63,8 @@ app.prepare().then(() => {
     });
 
     // Handle typing indicators (collision prevention)
-    socket.on('typing', ({ chatId, agentName }) => {
-      socket.to(`chat_${chatId}`).emit('agent_typing', { agentName });
+    socket.on('typing', ({ chatId }) => {
+      socket.to(`chat_${chatId}`).emit('agent_typing', { agentName: socket.data.user.name });
     });
 
     socket.on('stop_typing', ({ chatId }) => {

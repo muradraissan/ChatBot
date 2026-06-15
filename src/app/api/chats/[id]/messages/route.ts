@@ -1,14 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { getAuthSession } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const resolvedParams = await params;
+  const session = await getAuthSession();
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
   try {
-    const contactId = params.id;
+    const contactId = resolvedParams.id;
 
     if (!contactId) {
       return NextResponse.json({ error: 'Contact ID is required' }, { status: 400 });

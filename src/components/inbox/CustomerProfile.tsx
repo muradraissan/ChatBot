@@ -102,7 +102,7 @@ export function CustomerProfile({ chat, onSelectQuickReply }: CustomerProfilePro
           {/* Quick Replies Accordion */}
           <div>
             <h3 className="text-xs font-semibold uppercase text-slate-400 tracking-wider mb-2">Workspace Tools</h3>
-            <Accordion type="single" collapsible className="w-full">
+            <Accordion className="w-full">
               <AccordionItem value="quick-replies" className="border-slate-200">
                 <AccordionTrigger className="text-sm font-semibold text-slate-700 hover:text-indigo-600">
                   <div className="flex items-center gap-2">

@@ -1,4 +1,5 @@
 import { PrismaClient, Role, ChatStatus, SenderType } from '@prisma/client';
+import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
@@ -9,26 +10,36 @@ async function main() {
   await prisma.agentAssignment.deleteMany();
   await prisma.message.deleteMany();
   await prisma.contact.deleteMany();
-  await prisma.user.deleteMany();
 
-  // Create Agents
-  const agentAli = await prisma.user.create({
-    data: {
+  // DEV ONLY — these credentials seed local development users.
+  // The .test TLD is reserved per RFC 2606 and cannot be registered.
+  // Never run this seed against production.
+  const passwordHash = await bcrypt.hash('dev-password-123', 10);
+
+  // Create Agents (idempotent upsert)
+  const agentAli = await prisma.user.upsert({
+    where: { email: 'ali@iraqrasael.test' },
+    update: { passwordHash, role: Role.AGENT, name: 'Ali Hassan' },
+    create: {
       name: 'Ali Hassan',
-      email: 'ali@iraqrasael.com',
+      email: 'ali@iraqrasael.test',
+      passwordHash,
       role: Role.AGENT,
     },
   });
 
-  const agentSara = await prisma.user.create({
-    data: {
+  const agentSara = await prisma.user.upsert({
+    where: { email: 'sara@iraqrasael.test' },
+    update: { passwordHash, role: Role.AGENT, name: 'Sara Ahmed' },
+    create: {
       name: 'Sara Ahmed',
-      email: 'sara@iraqrasael.com',
+      email: 'sara@iraqrasael.test',
+      passwordHash,
       role: Role.AGENT,
     },
   });
 
-  console.log('Agents created:', [agentAli.name, agentSara.name]);
+  console.log('Agents created/updated:', [agentAli.name, agentSara.name]);
 
   // Create Contacts
   const contact1 = await prisma.contact.create({
