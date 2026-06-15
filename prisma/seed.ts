@@ -39,12 +39,12 @@ async function main() {
   // Create Agents for Acme
   const agentAli = await prisma.user.upsert({
     where: { email: 'ali@iraqrasael.test' },
-    update: { passwordHash, role: Role.AGENT, name: 'Ali Hassan', workspaceId: acme.id },
+    update: { passwordHash, role: Role.ADMIN, name: 'Ali Hassan', workspaceId: acme.id },
     create: {
       name: 'Ali Hassan',
       email: 'ali@iraqrasael.test',
       passwordHash,
-      role: Role.AGENT,
+      role: Role.ADMIN,
       workspaceId: acme.id,
     },
   });
@@ -64,12 +64,12 @@ async function main() {
   // Create Agents for Demo
   const agentOmar = await prisma.user.upsert({
     where: { email: 'omar@iraqrasael.test' },
-    update: { passwordHash, role: Role.AGENT, name: 'Omar Farooq', workspaceId: demo.id },
+    update: { passwordHash, role: Role.ADMIN, name: 'Omar Farooq', workspaceId: demo.id },
     create: {
       name: 'Omar Farooq',
       email: 'omar@iraqrasael.test',
       passwordHash,
-      role: Role.AGENT,
+      role: Role.ADMIN,
       workspaceId: demo.id,
     },
   });
