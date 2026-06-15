@@ -10,7 +10,7 @@ export async function POST(request: NextRequest) {
   }
   try {
     const body = await request.json();
-    const { contactId, agentId, text } = body;
+    const { contactId, text } = body;
 
     if (!contactId || !text) {
       return NextResponse.json({ error: 'Missing contactId or text' }, { status: 400 });
@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
     const message = await prisma.message.create({
       data: {
         contactId,
-        userId: agentId || null,
+        userId: session.user.id,
         content: text,
         senderType: 'AGENT',
         workspaceId: session.user.workspaceId,

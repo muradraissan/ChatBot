@@ -10,16 +10,16 @@ export async function POST(request: NextRequest) {
   }
   try {
     const body = await request.json();
-    const { contactId, agentId } = body;
+    const { contactId } = body;
 
-    if (!contactId || !agentId) {
-      return NextResponse.json({ error: 'Missing contactId or agentId' }, { status: 400 });
+    if (!contactId) {
+      return NextResponse.json({ error: 'Missing contactId' }, { status: 400 });
     }
 
     // Check if the agent exists
     const agent = await prisma.user.findFirst({ 
       where: { 
-        id: agentId,
+        id: session.user.id,
         workspaceId: session.user.workspaceId
       } 
     });
@@ -44,12 +44,12 @@ export async function POST(request: NextRequest) {
         contactId: contactId,
       },
       update: {
-        userId: agentId,
+        userId: session.user.id,
         assignedAt: new Date(),
       },
       create: {
         contactId,
-        userId: agentId,
+        userId: session.user.id,
         workspaceId: session.user.workspaceId,
       }
     });
